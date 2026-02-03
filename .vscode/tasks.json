@@ -1,0 +1,153 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Xcode Project",
+			"type": "shell",
+			"command": "xcodebuild -project xcode-project/MyApp.xcodeproj -scheme MyApp -destination 'platform=macOS'",
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Run Xcode Tests",
+			"type": "shell",
+			"command": "xcodebuild test -project xcode-project/MyApp.xcodeproj -scheme MyApp -destination 'platform=macOS'",
+			"group": "test",
+			"problemMatcher": []
+		},
+		{
+			"label": "Run Tinkerer Daemon",
+			"type": "shell",
+			"command": "python3 tinkerer_daemon.py",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run Tinkerer Daemon",
+			"type": "shell",
+			"command": "python3 tinkerer_daemon.py",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run Tests",
+			"type": "shell",
+			"command": "pytest && npm test",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$pytest",
+				"$tsc"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Run Integration Tests",
+			"type": "shell",
+			"command": "python3 integration_tests.py && npm run integration-test",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$pytest",
+				"$tsc"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Run Tests",
+			"type": "shell",
+			"command": "pytest && npm test",
+			"group": "test",
+			"problemMatcher": [
+				"$pytest",
+				"$tsc"
+			]
+		},
+		{
+			"label": "Run Integration Tests",
+			"type": "shell",
+			"command": "python3 integration_tests.py && npm run integration-test",
+			"group": "test",
+			"problemMatcher": [
+				"$pytest",
+				"$tsc"
+			]
+		},
+		{
+			"label": "Build Tools",
+			"type": "shell",
+			"command": "npm install && pip install -r requirements.txt",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Build Tools",
+			"type": "shell",
+			"command": "npm install && pip install -r requirements.txt",
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Tools",
+			"type": "shell",
+			"command": "npm install && pip install -r requirements.txt",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run Tests",
+			"type": "shell",
+			"command": "npm test && pytest",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$pytest",
+				"$tsc"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Run Tests",
+			"type": "shell",
+			"command": "npm test && pytest",
+			"group": "test",
+			"problemMatcher": [
+				"$pytest",
+				"$tsc"
+			]
+		},
+		{
+			"label": "Run Tests",
+			"type": "shell",
+			"command": "npm test && pytest",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$pytest",
+				"$tsc"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Run Audit Script",
+			"type": "shell",
+			"command": "bash scripts/audit_repo.sh",
+			"group": "test",
+			"problemMatcher": [],
+			"detail": "Analyzes the repository or local file system, generates an audit report, and checks for untracked, modified, and large files."
+		},
+		{
+			"label": "Run Context Pack Script",
+			"type": "shell",
+			"command": "bash scripts/context_pack.sh",
+			"group": "build",
+			"problemMatcher": []
+		}
+	]
+}

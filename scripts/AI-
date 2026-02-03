@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Launches the full Hungry agent stack: Ollama + backend agent + GUI
+# Usage: ./AI-
+
+set -e
+cd "$(dirname "$0")/.."
+
+echo "🤖 HUNGRY AI AGENT STACK"
+echo "============================================================"
+echo "Starting: Ollama + Agent + GUI + Training System"
+echo ""
+
+
+# Start Watchdog if not running
+if ! pgrep -f "AI-watchdog.py" > /dev/null; then
+  echo "[0/3] Starting Watchdog..."
+  python3 scripts/AI-watchdog.py > /tmp/ai_watchdog.log 2>&1 &
+  WATCHDOG_PID=$!
+  sleep 2
+  echo "     ✅ Watchdog started (PID: $WATCHDOG_PID)"
+else
+  echo "[0/3] ✅ Watchdog already running"
+fi
+if ! pgrep -x "ollama" > /dev/null; then
+  echo "[1/3] Starting Ollama server..."
+  ollama serve > /tmp/ollama.log 2>&1 &
+  OLLAMA_PID=$!
+  sleep 3
+  echo "     ✅ Ollama started (PID: $OLLAMA_PID)"
+else
+  echo "[1/3] ✅ Ollama already running"
+fi
+
+# Start backend agent if not running
+if ! pgrep -f "run_agent.py" > /dev/null; then
+  echo "[2/3] Starting Agent..."
+  python3 run_agent.py > /tmp/agent.log 2>&1 &
+  AGENT_PID=$!
+  sleep 2
+  echo "     ✅ Agent started (PID: $AGENT_PID)"
+else
+  echo "[2/3] ✅ Agent already running"
+fi
+
+# Start GUI if not running
+if ! pgrep -f "agent_gui.py" > /dev/null; then
+  echo "[3/3] Starting Agent GUI..."
+  python3 agent_gui.py > /tmp/agent_gui.log 2>&1 &
+  GUI_PID=$!
+  sleep 2
+  echo "     ✅ Agent GUI started (PID: $GUI_PID)"
+else
+  echo "[3/3] ✅ Agent GUI already running"
+fi
+
+echo ""
+echo "============================================================"
+echo "🎯 SYSTEM READY - ALL COMPONENTS (Ollama, Agent, GUI)"
+echo ""
+echo "To send requests:"
+echo "  Use the Agent GUI (already running above) or python3 run_agent.py (terminal mode)"
+echo ""
+echo "To train your model (after 10+ approvals):"
+echo "  python3 model_trainer.py"
+echo ""
+echo "To monitor:"
+echo "  Ollama: tail -f /tmp/ollama.log"
+echo "  Agent:  tail -f /tmp/agent.log"
+echo "  GUI:    tail -f /tmp/agent_gui.log"
+echo "  Memory: cat local-agent-vscode/ipc/agent_memory.json | python3 -m json.tool | head -30"
+echo ""
+echo "To stop all services:"
+echo "  ./AI-S"
+echo ""
+echo "To restart all services:"
+echo "  ./AI-R"
+echo ""
+echo "============================================================"
+echo "Agent, Ollama, and GUI are running. Check logs above if any issues."
+echo "============================================================"

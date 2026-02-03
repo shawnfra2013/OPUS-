@@ -1,0 +1,6 @@
+[Upgrade 1]
+- Upgrade CPU for faster processing
+[Upgrade 2]
+- Add more RAM for improved multitasking
+[Upgrade 3]
+- Install a solid-state drive (SSD) for faster storage access

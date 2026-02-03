@@ -1,0 +1,37 @@
+{
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "integration-test": "jest --config integration-test.config.js",
+    "start": "node dist/main.js",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
+    "@babel/preset-typescript": "^7.28.5",
+    "@nestjs/cli": "^11.0.16",
+    "@nestjs/common": "^11.1.12",
+    "@nestjs/core": "^11.1.12",
+    "@nestjs/platform-express": "^11.1.12",
+    "@nestjs/testing": "^11.1.12",
+    "@nestjs/websockets": "^11.1.12",
+    "@types/node": "^18.19.130",
+    "jest": "^30.2.0",
+    "multer": "^1.4.5-lts.1",
+    "reflect-metadata": "^0.2.2",
+    "ts-jest": "^29.4.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jasmine": "^6.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/multer": "^2.0.0",
+    "@types/socket.io": "^3.0.1",
+    "@types/supertest": "^6.0.3",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.3"
+  }
+}

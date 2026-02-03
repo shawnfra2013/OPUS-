@@ -1,0 +1,23 @@
+echo "Stopping Watchdog..."
+pkill -f "AI-watchdog.py"
+#!/bin/bash
+# Stops all Hungry agent components: Ollama, backend agent, and GUI
+echo "Stopping all Hungry agent components..."
+pkill -f "ollama"
+pkill -f "run_agent.py"
+pkill -f "agent_gui.py"
+echo "All components stopped."#!/bin/bash
+# Stop all agent processes (no restart)
+# Usage: ./AI-S
+
+echo "🛑 Stopping Hungry AI services..."
+
+# Kill processes gracefully
+pkill -f run_agent.py 2>/dev/null || true
+pkill -x ollama 2>/dev/null || true
+
+echo "✅ All services stopped"
+echo ""
+echo "To restart:"
+echo "  ./AI-R  (full reset + restart)"
+echo "  ./AI-   (start services)"

@@ -1,0 +1,25 @@
+# Security and privacy
+.env
+*.key
+*.pem
+*.log
+agent_memory.json
+tinkerer_journal.md
+tinkerer_daemon.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+*.js.map
+out/
+
+# OS
+.DS_Store
+Thumbs.db

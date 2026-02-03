@@ -1,0 +1,12 @@
+# Restart Watchdog as well
+pkill -f "AI-watchdog.py"
+sleep 1
+#!/bin/bash
+# Restarts all Hungry agent components: Ollama, backend agent, and GUI
+"$(dirname "$0")/AI-S"
+sleep 2
+"$(dirname "$0")/AI-"#!/bin/bash
+# Alias for PKILL_AND_RELOAD.sh, so you can run ./AI-R for full reset and reload
+
+cd "$(dirname "$0")"
+./PKILL_AND_RELOAD.sh

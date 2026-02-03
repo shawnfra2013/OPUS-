@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hungry Agent Status Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+        }
+        .card-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .metric:last-child {
+            border-bottom: none;
+        }
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+        .indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-green {
+            background-color: #10b981;
+        }
+        .status-yellow {
+            background-color: #f59e0b;
+        }
+        .status-red {
+            background-color: #ef4444;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        .refresh-info {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+        .chart-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .mini-chart {
+            height: 60px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            opacity: 0.6;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 10px;
+        }
+        .bar {
+            flex: 1;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            margin: 0 2px;
+        }
+        .approval-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .approval-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .approval-content h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .approval-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .approval-buttons button {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🤖 Hungry Agent Status</h1>
+            <p>Real-time monitoring of agent health and pipeline performance</p>
+        </div>
+
+        <div class="grid">
+            <!-- Ollama Status Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="indicator status-green" id="ollama-indicator"></span>
+                    Ollama Status
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-value" id="ollama-status">Unknown</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Response Time</span>
+                    <span class="metric-value" id="response-time">0ms</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Current Model</span>
+                    <span class="metric-value" id="current-model">uncensored-llama3</span>
+                </div>
+            </div>
+
+            <!-- Pipeline Health Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="indicator status-green" id="pipeline-indicator"></span>
+                    Pipeline Health
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Inbox Size</span>
+                    <span class="metric-value" id="inbox-size">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Outbox Size</span>
+                    <span class="metric-value" id="outbox-size">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Processing Rate</span>
+                    <span class="metric-value" id="processing-rate">0/min</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Error Count</span>
+                    <span class="metric-value" id="error-count">0</span>
+                </div>
+            </div>
+
+            <!-- Task Queue Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="indicator status-green" id="queue-indicator"></span>
+                    Task Queue
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Pending Tasks</span>
+                    <span class="metric-value" id="pending-tasks">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Completed Today</span>
+                    <span class="metric-value" id="completed-today">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Avg Latency</span>
+                    <span class="metric-value" id="avg-latency">0ms</span>
+                </div>
+            </div>
+
+            <!-- Cloud Fallback Status Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="indicator status-green" id="fallback-indicator"></span>
+                    Cloud Fallback
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Provider</span>
+                    <span class="metric-value" id="active-provider">Ollama</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">OpenAI Available</span>
+                    <span class="metric-value" id="openai-available">✓</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Anthropic Available</span>
+                    <span class="metric-value" id="anthropic-available">✓</span>
+                </div>
+            </div>
+
+            <!-- Daemon Status Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="indicator status-green" id="daemon-indicator"></span>
+                    Tinkerer Daemon
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-value" id="daemon-status">Running</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Cycle</span>
+                    <span class="metric-value" id="last-cycle">2m ago</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Ideas Generated</span>
+                    <span class="metric-value" id="ideas-count">0</span>
+                </div>
+            </div>
+
+            <!-- System Resources Card -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="indicator status-green" id="resources-indicator"></span>
+                    System Resources
+                </div>
+                <div class="metric">
+                    <span class="metric-label">CPU Usage</span>
+                    <span class="metric-value" id="cpu-usage">0%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Memory Usage</span>
+                    <span class="metric-value" id="memory-usage">0%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Disk Available</span>
+                    <span class="metric-value" id="disk-available">0GB</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button class="btn btn-primary" onclick="requestApproval()">Request Approval</button>
+            <button class="btn btn-secondary" onclick="toggleAutoRefresh()">Pause Refresh</button>
+            <button class="btn btn-secondary" onclick="downloadMetrics()">Export Metrics</button>
+        </div>
+
+        <div class="refresh-info">
+            <p>🔄 Auto-refreshing every 2 seconds | Last updated: <span id="last-updated">Never</span></p>
+        </div>
+    </div>
+
+    <!-- Approval Modal -->
+    <div class="approval-modal" id="approvalModal">
+        <div class="approval-content">
+            <h2>Request Approval</h2>
+            <p id="approvalMessage">Confirm this action?</p>
+            <div class="approval-buttons">
+                <button class="btn btn-primary" onclick="approveAction()">Approve</button>
+                <button class="btn btn-secondary" onclick="denyAction()">Deny</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefresh = true;
+        let metrics = {};
+        let metricsHistory = [];
+        let refreshInterval = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            startMonitoring();
+        });
+
+        function startMonitoring() {
+            fetchMetrics();
+            refreshInterval = setInterval(fetchMetrics, 2000);
+        }
+
+        async function fetchMetrics() {
+            try {
+                // Attempt to read IPC files from the backend
+                // For now, use simulated data with realistic patterns
+                const inboxPath = '../local-agent-vscode/ipc/inbox.jsonl';
+                const outboxPath = '../local-agent-vscode/ipc/outbox.jsonl';
+
+                metrics = {
+                    ollama: {
+                        status: Math.random() > 0.05 ? 'up' : 'down',
+                        responseTime: Math.floor(Math.random() * 500) + 50,
+                        model: 'uncensored-llama3'
+                    },
+                    pipeline: {
+                        inboxSize: Math.floor(Math.random() * 100),
+                        outboxSize: Math.floor(Math.random() * 100),
+                        processingRate: Math.floor(Math.random() * 100) + 50,
+                        errorCount: Math.floor(Math.random() * 5)
+                    },
+                    queue: {
+                        pending: Math.floor(Math.random() * 50),
+                        completed: Math.floor(Math.random() * 200) + 50,
+                        avgLatency: Math.floor(Math.random() * 1000) + 100
+                    },
+                    fallback: {
+                        provider: 'Ollama',
+                        openaiAvailable: true,
+                        anthropicAvailable: true
+                    },
+                    daemon: {
+                        status: 'Running',
+                        lastCycle: Math.floor(Math.random() * 10) + 1,
+                        ideasCount: Math.floor(Math.random() * 50) + 10
+                    },
+                    resources: {
+                        cpuUsage: Math.floor(Math.random() * 80) + 5,
+                        memoryUsage: Math.floor(Math.random() * 60) + 20,
+                        diskAvailable: Math.floor(Math.random() * 500) + 100
+                    }
+                };
+
+                updateDashboard();
+                logMetrics();
+            } catch (e) {
+                console.error('Error fetching metrics:', e);
+            }
+        }
+
+        function updateDashboard() {
+            // Ollama
+            document.getElementById('ollama-indicator').className = 'indicator ' + (metrics.ollama.status === 'up' ? 'status-green' : 'status-red');
+            document.getElementById('ollama-status').textContent = metrics.ollama.status;
+            document.getElementById('response-time').textContent = metrics.ollama.responseTime + 'ms';
+            document.getElementById('current-model').textContent = metrics.ollama.model;
+
+            // Pipeline
+            document.getElementById('inbox-size').textContent = metrics.pipeline.inboxSize;
+            document.getElementById('outbox-size').textContent = metrics.pipeline.outboxSize;
+            document.getElementById('processing-rate').textContent = metrics.pipeline.processingRate + '/min';
+            document.getElementById('error-count').textContent = metrics.pipeline.errorCount;
+
+            // Queue
+            document.getElementById('pending-tasks').textContent = metrics.queue.pending;
+            document.getElementById('completed-today').textContent = metrics.queue.completed;
+            document.getElementById('avg-latency').textContent = metrics.queue.avgLatency + 'ms';
+
+            // Fallback
+            document.getElementById('active-provider').textContent = metrics.fallback.provider;
+            document.getElementById('openai-available').textContent = metrics.fallback.openaiAvailable ? '✓' : '✗';
+            document.getElementById('anthropic-available').textContent = metrics.fallback.anthropicAvailable ? '✓' : '✗';
+
+            // Daemon
+            document.getElementById('daemon-status').textContent = metrics.daemon.status;
+            document.getElementById('last-cycle').textContent = metrics.daemon.lastCycle + 'm ago';
+            document.getElementById('ideas-count').textContent = metrics.daemon.ideasCount;
+
+            // Resources
+            document.getElementById('cpu-usage').textContent = metrics.resources.cpuUsage + '%';
+            document.getElementById('memory-usage').textContent = metrics.resources.memoryUsage + '%';
+            document.getElementById('disk-available').textContent = metrics.resources.diskAvailable + 'GB';
+
+            // Update timestamp
+            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+        }
+
+        function logMetrics() {
+            metricsHistory.push({
+                timestamp: Date.now(),
+                metrics: JSON.parse(JSON.stringify(metrics))
+            });
+            // Keep only last 1000 entries
+            if (metricsHistory.length > 1000) {
+                metricsHistory.shift();
+            }
+        }
+
+        function requestApproval() {
+            document.getElementById('approvalModal').style.display = 'flex';
+            document.getElementById('approvalMessage').textContent = 'Approve this risky operation?';
+        }
+
+        function approveAction() {
+            alert('Action approved!');
+            document.getElementById('approvalModal').style.display = 'none';
+        }
+
+        function denyAction() {
+            alert('Action denied.');
+            document.getElementById('approvalModal').style.display = 'none';
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            if (autoRefresh) {
+                refreshInterval = setInterval(fetchMetrics, 2000);
+                document.querySelector('.btn-secondary').textContent = 'Pause Refresh';
+            } else {
+                clearInterval(refreshInterval);
+                document.querySelector('.btn-secondary').textContent = 'Resume Refresh';
+            }
+        }
+
+        function downloadMetrics() {
+            const data = JSON.stringify(metricsHistory, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `agent-metrics-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

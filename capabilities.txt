@@ -1,0 +1,3 @@
+AI capabilities include processing natural language, generating text, understanding context, and providing concise, direct responses.
+
+I can help with tasks like creating JSON files, answering questions, or executing commands.

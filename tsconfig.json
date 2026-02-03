@@ -1,0 +1,43 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    // File Layout
+    "rootDir": "hungry-backend/project-name/src",
+    "outDir": "hungry-backend/project-name/dist",
+
+    // Environment Settings
+    // See also https://aka.ms/tsconfig/module
+    "module": "NodeNext",
+    "target": "ESNext",
+    "types": ["jest", "node"], // Added 'node' to include Node.js types
+    "lib": ["esnext"], // Uncommented to include ESNext library definitions
+    // and npm install -D @types/node
+
+    // Other Outputs
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Style Options
+    // "noImplicitReturns": true,
+    // "noImplicitOverride": true,
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    // "noFallthroughCasesInSwitch": true,
+    // "noPropertyAccessFromIndexSignature": true,
+
+    // Recommended Options
+    "strict": true,
+    "jsx": "react-jsx",
+    "isolatedModules": true,
+
+    // Experimental Options
+    "experimentalDecorators": true, // Enable experimental decorators
+    "emitDecoratorMetadata": true // Emit metadata for decorators
+  },
+  "include": ["hungry-backend/project-name/src/types/**/*.d.ts", "hungry-backend/project-name/src/**/*"]
+}

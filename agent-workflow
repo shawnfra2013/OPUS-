@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""
+VS Code-Style Agent Workflow CLI
+
+Usage:
+  ./agent-workflow list-templates           # Show available templates
+  ./agent-workflow template web-scraper     # Get prompt for web scraper template
+  ./agent-workflow review [request-id]      # Review pending approval
+  ./agent-workflow approve [request-id]     # Approve and execute
+  ./agent-workflow pending                  # List pending approvals
+"""
+
+import sys
+import json
+from pathlib import Path
+from code_templates import get_template, list_templates as show_templates
+from approval_workflow import ApprovalWorkflow
+
+def print_header(title):
+    """Print a nice header"""
+    print(f"\n{'='*80}")
+    print(f"  {title}")
+    print(f"{'='*80}\n")
+
+def show_template_prompt(template_name: str):
+    """Show the prompt for a template"""
+    try:
+        template = get_template(template_name)
+    except ValueError as e:
+        print(f"❌ {e}")
+        return
+    
+    print_header(f"TEMPLATE: {template.name}")
+    print(template.description)
+    
+    print("\n📋 PROMPT TO SEND TO AGENT:")
+    print("-" * 80)
+    print(template.get_prompt())
+    print("-" * 80)
+    
+    print("\n\n🔧 WHAT WILL HAPPEN AFTER YOU PASTE THIS PROMPT:")
+    
+    print("\n1️⃣  AGENT GENERATES CODE")
+    print("   The agent will create the following files:")
+    for filepath, desc in template.get_files_to_create().items():
+        print(f"     • {filepath}")
+        print(f"       {desc}")
+    
+    print("\n2️⃣  AGENT CREATES APPROVAL REQUEST")
+    print("   An approval request will be generated with:")
+    print(f"     • Risk level: {template.get_risk_level()}")
+    print(f"     • Files to create: {len(template.get_files_to_create())}")
+    print(f"     • Tests to run: {len(template.get_test_commands())}")
+    
+    print("\n3️⃣  YOU REVIEW")
+    print("   You'll see what's being created and decide:")
+    print("     [y] Approve and run tests")
+    print("     [n] Deny (code is discarded)")
+    print("     [review] Review the actual code first")
+    
+    print("\n4️⃣  IF APPROVED: AUTOMATIC EXECUTION")
+    print("   The system will:")
+    print("     • Create all files")
+    print("     • Run test commands")
+    print("     • Display results")
+    print("     • Save execution log")
+    
+    print("\n📊 TEST COMMANDS THAT WILL RUN:")
+    for cmd_info in template.get_test_commands():
+        marker = "🧪" if cmd_info.get('test') else "▶️"
+        print(f"   {marker} {cmd_info['description']}")
+        print(f"      $ {cmd_info['cmd']}")
+    
+    print("\n✅ HOW TO VERIFY MANUALLY:")
+    for i, step in enumerate(template.get_verification_steps(), 1):
+        print(f"   {i}. {step}")
+    
+    print("\n" + "="*80)
+    print("NEXT STEPS:")
+    print("="*80)
+    print("1. Copy the prompt above (between the dashes)")
+    print("2. Open Local Agent Chat in VS Code")
+    print("3. Paste the prompt and hit Send")
+    print("4. Agent will generate code")
+    print("5. Agent will create an approval request")
+    print("6. Run: ./agent-workflow pending")
+    print(f"7. Run: ./agent-workflow review [request-id]")
+    print("8. Approve or deny when prompted")
+    print("="*80 + "\n")
+
+def main():
+    if len(sys.argv) < 2:
+        print_header("AGENT WORKFLOW SYSTEM")
+        print("VS Code-style approval workflow for agent-generated code\n")
+        print("USAGE:")
+        print("  ./agent-workflow list-templates              # Show templates")
+        print("  ./agent-workflow template [name]             # Show template prompt")
+        print("  ./agent-workflow pending                     # List pending approvals")
+        print("  ./agent-workflow review [request-id]         # Review & approve/deny")
+        print("  ./agent-workflow approve [request-id]        # Auto-approve")
+        print("  ./agent-workflow deny [request-id]           # Auto-deny\n")
+        print("TEMPLATES:")
+        print("  • web-scraper        (Python web scraper with logging)")
+        print("  • swift-network      (Swift iOS networking library)")
+        print("  • express-api        (Express.js REST API)\n")
+        return
+    
+    command = sys.argv[1]
+    
+    workflow = ApprovalWorkflow()
+    
+    if command == "list-templates":
+        show_templates()
+    
+    elif command == "template":
+        if len(sys.argv) < 3:
+            print("❌ Template name required")
+            print("   Usage: ./agent-workflow template [web-scraper|swift-network|express-api]")
+            return
+        template_name = sys.argv[2]
+        show_template_prompt(template_name)
+    
+    elif command == "pending":
+        workflow.list_pending()
+    
+    elif command == "review":
+        if len(sys.argv) < 3:
+            print("❌ Request ID required")
+            print("   Usage: ./agent-workflow review [request-id]")
+            return
+        request_id = sys.argv[2]
+        workflow.display_approval_request(request_id)
+    
+    elif command == "approve":
+        if len(sys.argv) < 3:
+            print("❌ Request ID required")
+            return
+        request_id = sys.argv[2]
+        workflow.approve_request(request_id)
+    
+    elif command == "deny":
+        if len(sys.argv) < 3:
+            print("❌ Request ID required")
+            return
+        request_id = sys.argv[2]
+        workflow.deny_request(request_id)
+    
+    else:
+        print(f"❌ Unknown command: {command}")
+
+if __name__ == "__main__":
+    main()

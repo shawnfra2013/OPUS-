@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent GUI Mockup</title>
+  <style>
+    body {
+      background: #181C24;
+      color: #F3F6FA;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      background: #20232A;
+      border-left: 1px solid #23272F;
+      padding: 24px 18px;
+      width: 320px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 32px 40px 24px 40px;
+      box-sizing: border-box;
+    }
+    .card {
+      background: #23272F;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    .chat-box {
+      background: #23272F;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      padding: 14px 18px;
+      resize: both;
+      overflow: auto;
+      min-width: 220px;
+      min-height: 48px;
+      cursor: move;
+    }
+    .chat-box.user { border-left: 4px solid #2563eb; }
+    .chat-box.agent { border-left: 4px solid #22c55e; }
+    .chat-input {
+      display: flex;
+      margin-top: 18px;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 4px 0 0 4px;
+      border: none;
+      font-size: 1rem;
+      background: #23272F;
+      color: #F3F6FA;
+    }
+    .chat-input button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 0 4px 4px 0;
+      padding: 10px 22px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .chat-input button:hover { background: #1e40af; }
+    .pause-btn {
+      background: #eab308;
+      color: #23272F;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 18px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: 18px;
+      transition: background 0.2s;
+    }
+    .pause-btn.paused { background: #22c55e; color: #fff; }
+    .status-bar {
+      margin-top: auto;
+      color: #a3a3a3;
+      font-size: 0.95em;
+      padding-top: 10px;
+    }
+    .sidebar h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 1.1em;
+      color: #60a5fa;
+    }
+    .sidebar ul {
+      list-style: disc inside;
+      padding-left: 0;
+      margin-bottom: 18px;
+    }
+    .sidebar li {
+      margin-bottom: 8px;
+      color: #F3F6FA;
+    }
+    .sidebar button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 7px 16px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+    .sidebar button:hover { background: #1e40af; }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .status-running { background: #22c55e; }
+    .status-paused { background: #eab308; }
+    .status-error { background: #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="main">
+    <button class="pause-btn">Pause AI</button>
+    <div class="card">
+      <div class="chat-box user" draggable="true">User: How do I fine-tune a model?</div>
+      <div class="chat-box agent" draggable="true">Agent: To fine-tune a model, you need to prepare your dataset, select a base model, and configure hyperparameters. Would you like step-by-step instructions?</div>
+      <div class="chat-box user" draggable="true">User: Yes, and show me the best learning rate for my data.</div>
+      <div class="chat-box agent" draggable="true">Agent: Based on your dataset size, a good starting learning rate is 0.00002. You can adjust this after initial results.</div>
+    </div>
+    <div class="chat-input">
+      <input type="text" placeholder="Type your prompt..." />
+      <button>Send</button>
+    </div>
+    <div class="status-bar">
+      <span class="status-dot status-running"></span> Running | 10m 26s | Model: Open-Source-Model
+    </div>
+  </div>
+  <div class="sidebar">
+    <h3>Suggestions & Actions</h3>
+    <ul>
+      <li><input type="checkbox" /> Try a different learning rate</li>
+      <li><input type="checkbox" /> Add more training epochs</li>
+      <li><input type="checkbox" /> Use data augmentation</li>
+      <li><input type="checkbox" /> Review model artifacts</li>
+    </ul>
+    <button>Implement Selected</button>
+  </div>
+</body>
+</html>

@@ -1,0 +1,3 @@
+This file was created by the autonomous action handler.
+Agent output → Action Handler → File Created.
+No prompt-back. Pure autonomous execution.

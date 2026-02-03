@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Chat Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 20px;
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        .box {
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .box h2 {
+            margin-top: 0;
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .text-box {
+            height: 150px;
+            resize: none;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 1em;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+
+        .buttons button:hover {
+            background-color: #0056b3;
+        }
+
+        .logs {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tabs button {
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .tabs button.active {
+            background-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <button class="active">Chat 1</button>
+        <button>Chat 2</button>
+        <button>Chat 3</button>
+    </div>
+
+    <div class="container">
+        <div class="box">
+            <h2>Parked Tasks and Todos</h2>
+            <textarea class="text-box" placeholder="Inject a todo or approval..."></textarea>
+            <div class="buttons">
+                <button>Submit</button>
+                <button>Clear</button>
+            </div>
+        </div>
+
+        <div class="box">
+            <h2>Running Processes</h2>
+            <div class="logs">Live processes will appear here...</div>
+        </div>
+
+        <div class="box">
+            <h2>Notebook</h2>
+            <textarea class="text-box" placeholder="Write notes here..."></textarea>
+            <div class="buttons">
+                <button>Save</button>
+                <button>Clear</button>
+            </div>
+        </div>
+
+        <div class="box">
+            <h2>Logs</h2>
+            <div class="logs">Stack logs and daemon logs will appear here...</div>
+        </div>
+
+        <div class="box">
+            <h2>Output</h2>
+            <div class="logs">Live output will appear here...</div>
+        </div>
+
+        <div class="box">
+            <h2>Controls</h2>
+            <div class="buttons">
+                <button>Start</button>
+                <button>Stop</button>
+                <button>Pause</button>
+                <button>Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add functionality for tabs
+        const tabs = document.querySelectorAll('.tabs button');
+        tabs.forEach((tab, index) => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                console.log(`Switched to Chat ${index + 1}`);
+            });
+        });
+
+        // Add drag-and-drop functionality
+        const textBoxes = document.querySelectorAll('.text-box');
+        textBoxes.forEach(box => {
+            box.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                box.style.border = '2px dashed #007bff';
+            });
+
+            box.addEventListener('dragleave', () => {
+                box.style.border = '1px solid #ccc';
+            });
+
+            box.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const files = e.dataTransfer.files;
+                console.log('Dropped files:', files);
+                box.style.border = '1px solid #ccc';
+            });
+        });
+    </script>
+</body>
+</html>
