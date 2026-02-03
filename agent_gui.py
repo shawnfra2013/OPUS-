@@ -178,21 +178,20 @@ class AgentGUI:
 
         # Set inbox path for writing prompts
         self.inbox = os.path.join("local-agent-vscode", "ipc", "inbox.jsonl")
+        
+        # Initialize background watchers
+        self.running = True
+        self.stall_counter = 0
+        self.stall_limit = 30  # seconds
+        threading.Thread(target=self.watch_outbox, daemon=True).start()
+        threading.Thread(target=self.stall_watcher, daemon=True).start()
+        threading.Thread(target=self.error_watcher, daemon=True).start()
 
     def set_status(self, text, level="info"):
         # level: info, warn, error
         color = {"info": "#e0ffe0", "warn": "#fffbe0", "error": "#ffe0e0"}.get(level, "#e0ffe0")
         fg = {"info": "#222", "warn": "#b8860b", "error": "#c00"}.get(level, "#222")
         self.status.config(text=text, bg=color, fg=fg)
-        # Background watcher
-        self.running = True
-        self.stall_counter = 0
-        self.stall_limit = 30  # seconds
-        # Start all background threads
-        threading.Thread(target=self.watch_outbox, daemon=True).start()
-        threading.Thread(target=self.stall_watcher, daemon=True).start()
-        threading.Thread(target=self.error_watcher, daemon=True).start()
-        threading.Thread(target=self.status_updater, daemon=True).start()
 
     def send_prompt(self, event=None):
         prompt = self.entry.get().strip()

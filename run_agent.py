@@ -130,8 +130,8 @@ def process_prompt(msg, memory, bot, outbox_path):
         "User request: " + (prompt or "") + "\n"
     )
     
-    prompt_with_context = ios_context + context_str
-    refined_prompt = prompt_with_context
+    # prompt_with_context will be set conditionally below based on is_simple_chat
+    refined_prompt = None
     # Refinement disabled for faster response
     # if not skip_refinement:
     #     refined_prompt = refine_prompt(prompt_with_context, bot)
@@ -166,8 +166,18 @@ def process_prompt(msg, memory, bot, outbox_path):
     # Determine if this is a simple chat or requires action
     is_simple_chat = not any(keyword in prompt.lower() for keyword in [
         'create file', 'write file', 'generate file', 'make file', 'build file',
-        'execute', 'run command', 'install', 'delete', 'modify file'
+        'execute', 'run command', 'install', 'delete', 'modify file', 'update file'
     ])
+    
+    # Build context based on chat type
+    if is_simple_chat:
+        # Simple conversational context - no action instructions
+        prompt_with_context = f"User: {prompt}\n" + context_str
+    else:
+        # Action-oriented context with JSON instruction
+        prompt_with_context = ios_context + context_str
+    
+    refined_prompt = prompt_with_context  # Set for memory storage later
     
     import ollama
     reply = None
@@ -360,8 +370,8 @@ def process_prompt(msg, memory, bot, outbox_path):
                 dbg.write(f"[process_prompt] BULLETPROOF fallback triggered: tmp_path_match={bool(tmp_path_match)}, content_match={bool(content_match)}, has_manual_test_action={has_manual_test_action}\n")
         except Exception:
             pass
-    # If still no actions, log error to outbox and debug log
-    if not actions:
+    # If still no actions, log error to outbox and debug log (only for action prompts, not simple chat)
+    if not actions and not is_simple_chat:
         error_msg = f"No valid action generated for prompt: {prompt}"
         print(f"[Agent] {error_msg}")
         try:

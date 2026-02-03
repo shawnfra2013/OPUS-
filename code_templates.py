@@ -1,4 +1,4 @@
-`#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Agent Template System
 Provides templates for common code generation tasks with built-in testing
