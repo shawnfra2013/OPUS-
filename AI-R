@@ -1,4 +1,6 @@
 #!/bin/bash
-"$(dirname "$0")/AI-S"
+# AI-R : Restart all dev services (Stop then Start)
+cd "$(dirname "$0")"
+./scripts/dev.sh -killdev
 sleep 2
-"$(dirname "$0")/AI-"
+./scripts/dev.sh -dev

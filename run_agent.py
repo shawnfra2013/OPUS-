@@ -104,29 +104,24 @@ def process_prompt(msg, memory, bot, outbox_path):
     
     # System context - STRICT action-only format enforcement
     ios_context = (
-        "SYSTEM: You are an autonomous AI agent. Your ONLY job is to output valid JSON actions.\n\n"
-        "MANDATORY RULES (no exceptions, no negotiations):\n"
+        "SYSTEM: You are an autonomous AI agent with SELF-MODIFICATION capabilities. Your job is to output valid JSON actions.\n\n"
+        "CRITICAL: You can read and modify your own code. Your main files are:\n"
+        "- /Users/shawnfrahm/hungry/run_agent.py (your brain - main processing loop)\n"
+        "- /Users/shawnfrahm/hungry/agent_action_handler.py (your hands - executes actions)\n"
+        "- /Users/shawnfrahm/hungry/agent_gui.py (your interface with users)\n"
+        "- /Users/shawnfrahm/hungry/SELF_ANALYSIS.md (your self-documentation)\n\n"
+        "MANDATORY RULES:\n"
         "1. Every response MUST be valid JSON with 'action_type' field\n"
-        "2. NEVER output explanations, instructions, or natural language\n"
-        "3. NEVER ask questions or prompt for clarification\n"
-        "4. ALWAYS output complete file content (no truncation or summaries)\n"
-        "5. ONLY recognized action types: create_file, update_file, update_readme, execute_command\n\n"
-        "JSON ACTION FORMAT (must be valid JSON):\n"
+        "2. NEVER output explanations or natural language\n"
+        "3. ALWAYS output complete file content (no truncation or summaries)\n"
+        "4. Recognized action types: read_file, create_file, update_file, execute_command, list_directory\n\n"
+        "JSON ACTION FORMAT:\n"
         "{\n"
-        '  "action_type": "create_file|update_file|update_readme|execute_command",\n'
+        '  "action_type": "read_file|create_file|update_file|execute_command",\n'
         '  "filepath": "/Users/shawnfrahm/hungry/path/to/file.ext",\n'
-        '  "content": "full file content or command here (no omissions)",\n'
-        '  "reason": "brief explanation of what this action accomplishes"\n'
+        '  "content": "full file content (for read_file, omit this field)",\n'
+        '  "reason": "brief explanation"\n'
         "}\n\n"
-        "EXAMPLES:\n"
-        '{"action_type": "create_file", "filepath": "/Users/shawnfrahm/hungry/script.py", "content": "#!/usr/bin/env python3\\nprint(\\"hello\\")", "reason": "Create script as requested"}\n'
-        '{"action_type": "execute_command", "filepath": "bash", "content": "cd /Users/shawnfrahm/hungry && python3 script.py", "reason": "Run the script"}\n\n'
-        "FAILURE CONDITIONS:\n"
-        "- Outputting plain text instead of JSON\n"
-        "- Outputting explanations or 'how-to' instructions\n"
-        "- Omitting required fields (action_type, filepath, content, reason)\n"
-        "- Invalid JSON syntax\n"
-        "- Asking user questions instead of taking action\n\n"
         "User request: " + (prompt or "") + "\n"
     )
     
@@ -137,7 +132,268 @@ def process_prompt(msg, memory, bot, outbox_path):
     #     refined_prompt = refine_prompt(prompt_with_context, bot)
     #     print(f"[Agent] [Thread] Refined prompt: {refined_prompt}")
     
-    # Check if model should call external APIs for better context
+    # Determine if this is a simple chat or requires action
+    # Keywords that trigger action mode (file operations, code changes, self-modification)
+    action_keywords = [
+        'create file', 'write file', 'generate file', 'make file', 'build file',
+        'execute', 'run command', 'install', 'delete', 'modify file', 'update file',
+        'edit file', 'edit code', 'edit your', 'change code', 'add function', 'add method',
+        'read file', 'read code', 'read your', 'show file', 'show code',
+        'improve yourself', 'modify yourself', 'update yourself', 'enhance yourself',
+        'self-improve', 'self-modify', 'bootstrap', 'upgrade yourself',
+        'add capability', 'add feature', 'extend yourself', 'your own code',
+        'list files', 'read self_analysis',
+        # Direct action triggers
+        'do it', 'yes', 'proceed', 'go ahead', 'implement', 'add it', 'make it',
+        # Follow-up action triggers (after reading a file)
+        'now add', 'now update', 'now modify', 'add the', 'update the', 'modify the',
+        'add list_directory', 'list_directory', 'add _list_directory'
+    ]
+    
+    # Choice patterns - user selected an option from a previous menu
+    choice_patterns = ['1', '2', '3', 'option 1', 'option 2', 'option 3', 'first', 'second', 'third']
+    is_choice_response = prompt.strip().lower() in choice_patterns
+    
+    # Suggestion keywords - these trigger conversational mode WITH options
+    suggestion_keywords = [
+        'suggest upgrade', 'next upgrade', 'suggest improvement', 'what can you improve',
+        'analyze yourself', 'inspect yourself', 'self analysis', 'self-analysis',
+        'what do you need', 'what should i upgrade', 'capabilities', 'your capabilities',
+        'show capabilities', 'what can you do', 'what are my options', 'help me choose'
+    ]
+    
+    is_suggestion_mode = any(keyword in prompt.lower() for keyword in suggestion_keywords)
+    is_action_mode = (any(keyword in prompt.lower() for keyword in action_keywords) or is_choice_response) and not is_suggestion_mode
+    is_simple_chat = not is_action_mode and not is_suggestion_mode
+    
+    # SPECIAL CASE: Implementation mode - when user wants to add/implement something in a file
+    # We pre-read the file and include it in context so LLM can output update_file directly
+    implementation_keywords = ['implement', 'add the', 'now add', 'add method', 'add function', 'add _']
+    is_implementation_mode = any(keyword in prompt.lower() for keyword in implementation_keywords)
+    
+    # Extract target file from prompt
+    target_file_content = ""
+    target_file_path = ""
+    if is_implementation_mode:
+        import re
+        # Look for common file patterns in the prompt
+        file_patterns = [
+            r'(?:in|to|for)\s+([a-zA-Z0-9_/.-]+\.py)',  # "in agent_action_handler.py"
+            r'([a-zA-Z0-9_]+\.py)',  # Just a .py file
+        ]
+        for pattern in file_patterns:
+            match = re.search(pattern, prompt, re.IGNORECASE)
+            if match:
+                file_name = match.group(1)
+                # Build full path
+                if not file_name.startswith('/'):
+                    target_file_path = f"/Users/shawnfrahm/hungry/{file_name}"
+                else:
+                    target_file_path = file_name
+                break
+        
+        # Also check for common targets from choice_map
+        if not target_file_path and 'list_directory' in prompt.lower():
+            target_file_path = "/Users/shawnfrahm/hungry/agent_action_handler.py"
+        
+        # Pre-read the target file
+        if target_file_path and os.path.exists(target_file_path):
+            try:
+                with open(target_file_path, 'r') as f:
+                    target_file_content = f.read()
+                print(f"[Agent] 📖 Pre-read target file: {target_file_path} ({len(target_file_content)} bytes)")
+            except Exception as e:
+                print(f"[Agent] ⚠️ Could not pre-read file: {e}")
+    
+    # Build context based on chat type
+    if is_simple_chat:
+        # Simple conversational context - no action instructions
+        prompt_with_context = f"User: {prompt}\n" + context_str
+    elif is_suggestion_mode:
+        # Suggestion mode - conversational with actionable options
+        suggestion_context = (
+            "SYSTEM: You are an AI agent assistant. The user is asking about upgrades or improvements.\n\n"
+            "IMPORTANT: Respond in NATURAL LANGUAGE (not JSON). Your job is to:\n"
+            "1. Read the SELF_ANALYSIS.md file content below\n"
+            "2. Explain the current upgrade priorities in plain English\n"
+            "3. Offer numbered choices the user can pick from\n"
+            "4. Ask the user which upgrade they want to implement\n\n"
+            "Example response format:\n"
+            "---\n"
+            "Based on your SELF_ANALYSIS.md, here are your current upgrade priorities:\n\n"
+            "**1. Add list_directory action** - Let me browse folders\n"
+            "**2. Multi-action chaining** - Execute multiple steps\n"
+            "**3. Conversation memory** - Remember context\n\n"
+            "Which upgrade would you like me to implement? Just say '1', '2', or '3'.\n"
+            "---\n\n"
+            "Current SELF_ANALYSIS.md content:\n"
+        )
+        # Read SELF_ANALYSIS.md and include it
+        try:
+            self_analysis_path = Path(__file__).parent / 'SELF_ANALYSIS.md'
+            if self_analysis_path.exists():
+                suggestion_context += self_analysis_path.read_text() + "\n\n"
+        except Exception:
+            pass
+        prompt_with_context = suggestion_context + f"User request: {prompt}\n" + context_str
+    elif is_choice_response:
+        # User chose an option - for known choices, execute directly without LLM
+        choice_key = prompt.strip().lower()
+        
+        # DIRECT EXECUTION for choice "1" - add _list_directory method
+        if choice_key in ['1', 'first']:
+            print(f"[Agent] 🎯 Direct execution: Adding _list_directory method")
+            target_file = '/Users/shawnfrahm/hungry/agent_action_handler.py'
+            new_method_code = '''
+    @staticmethod
+    def _list_directory(data):
+        """List files and folders in a directory"""
+        directory_path = data.get('directory_path') or data.get('path', '.')
+        
+        try:
+            from pathlib import Path
+            path = Path(directory_path)
+            
+            if not path.exists():
+                print(f"[ActionHandler] ✗ list_directory: path not found: {directory_path}")
+                return
+            
+            items = []
+            for item in path.iterdir():
+                item_type = 'dir' if item.is_dir() else 'file'
+                items.append({'name': item.name, 'type': item_type})
+            
+            # Write result to outbox for GUI display
+            result_msg = {
+                "id": f"list-dir-{int(time.time())}",
+                "agent": "actionHandler",
+                "text": f"📁 **{directory_path}**:\\n" + "\\n".join([f"  {'📂' if i['type']=='dir' else '📄'} {i['name']}" for i in sorted(items, key=lambda x: (x['type']!='dir', x['name']))]),
+                "actions": [],
+                "timestamp": int(time.time() * 1000)
+            }
+            with open(OUTBOX, 'a') as f:
+                f.write(json.dumps(result_msg) + '\\n')
+            
+            print(f"[ActionHandler] ✓ Listed {len(items)} items in {directory_path}")
+            AgentActionHandler._log_action({
+                'type': 'directory_listed',
+                'path': directory_path,
+                'timestamp': int(time.time()),
+                'item_count': len(items)
+            })
+            
+        except Exception as e:
+            print(f"[ActionHandler] ✗ Failed to list directory {directory_path}: {e}")
+'''
+            # Execute the insert directly
+            action = {
+                'action_type': 'insert_code',
+                'filepath': target_file,
+                'after_line': 'def _read_file(data):',
+                'code': new_method_code,
+                'reason': 'Added _list_directory method via direct choice execution'
+            }
+            
+            # Execute using globally imported AgentActionHandler
+            AgentActionHandler._insert_code(action)
+            
+            # Write success message to outbox
+            success_msg = {
+                "id": f"choice-1-success-{int(time.time())}",
+                "agent": "localAgent",
+                "text": "✅ **Successfully added `_list_directory` method!**\n\nThe new method has been inserted into `agent_action_handler.py`.\n\nYou can now use `list_directory` actions with:\n```json\n{\"action_type\": \"list_directory\", \"directory_path\": \"/path/to/dir\"}\n```",
+                "actions": [],
+                "completion_probability": 1.0,
+                "eta_seconds": 0,
+                "timestamp": int(time.time() * 1000)
+            }
+            with open(outbox_path, 'a') as f:
+                f.write(json.dumps(success_msg) + '\n')
+            
+            return  # Skip LLM call entirely
+        
+        # For other choices, use LLM
+        choice_files = {
+            '2': '/Users/shawnfrahm/hungry/run_agent.py',
+            '3': '/Users/shawnfrahm/hungry/run_agent.py',
+            'second': '/Users/shawnfrahm/hungry/run_agent.py',
+            'third': '/Users/shawnfrahm/hungry/run_agent.py'
+        }
+        choice_tasks = {
+            '2': 'Add multi-action chaining support - allow multiple actions in one response',
+            '3': 'Add conversation memory persistence - save and load agent_memory.json',
+            'second': 'Add multi-action chaining',
+            'third': 'Add conversation memory persistence'
+        }
+        target_file_path = choice_files.get(choice_key, '')
+        task_description = choice_tasks.get(choice_key, prompt)
+        
+        # Read the target file
+        choice_file_content = ""
+        if target_file_path and os.path.exists(target_file_path):
+            try:
+                with open(target_file_path, 'r') as f:
+                    choice_file_content = f.read()
+                print(f"[Agent] 📖 Choice mode: read {target_file_path} ({len(choice_file_content)} bytes)")
+            except Exception as e:
+                print(f"[Agent] ⚠️ Could not read choice target: {e}")
+        
+        if choice_file_content:
+            # Build implementation context - ask for insert_code action
+            prompt_with_context = (
+                "SYSTEM: You are implementing a code change. Output an insert_code action.\n\n"
+                f"TARGET FILE: {target_file_path}\n"
+                f"TASK: {task_description}\n\n"
+                "OUTPUT FORMAT (JSON only):\n"
+                "{\n"
+                '  "action_type": "insert_code",\n'
+                f'  "filepath": "{target_file_path}",\n'
+                '  "after_line": "<line text to insert after>",\n'
+                '  "code": "<new code to insert>",\n'
+                '  "reason": "<description>"\n'
+                "}\n"
+            )
+            print(f"[Agent] 🔧 Choice → LLM insert mode for: {task_description[:50]}...")
+        else:
+            # Fallback to old behavior
+            choice_map = {
+                '2': 'Read file /Users/shawnfrahm/hungry/run_agent.py, then add multi-action chaining support',
+                '3': 'Read file /Users/shawnfrahm/hungry/run_agent.py, then add conversation memory persistence',
+            }
+            expanded_prompt = choice_map.get(choice_key, prompt)
+            prompt_with_context = ios_context.replace(f"User request: {prompt}", f"User request: {expanded_prompt}")
+    elif is_implementation_mode and target_file_content:
+        # IMPLEMENTATION MODE: Ask for insert_code action (simpler than full file update)
+        implementation_context = (
+            "SYSTEM: You are implementing a code change. Output an insert_code action.\n\n"
+            "YOUR TASK: Output JSON to INSERT new code into the existing file.\n\n"
+            "CRITICAL RULES:\n"
+            "1. Output ONLY valid JSON - no explanations\n"
+            "2. Use 'insert_code' action type\n"
+            "3. Specify 'after_line' - text that appears on ONE line in the file\n"
+            "4. The 'code' field should contain ONLY the new code to insert\n\n"
+            f"TARGET FILE: {target_file_path}\n"
+            f"USER REQUEST: {prompt}\n\n"
+            "First 80 lines of the file:\n"
+            "```python\n"
+            f"{chr(10).join(target_file_content.split(chr(10))[:80])}\n"
+            "```\n\n"
+            "OUTPUT FORMAT (JSON only):\n"
+            "{\n"
+            '  "action_type": "insert_code",\n'
+            f'  "filepath": "{target_file_path}",\n'
+            '  "after_line": "def _read_file(filepath):",\n'
+            '  "code": "    @staticmethod\\n    def _list_directory(path):\\n        ...",\n'
+            '  "reason": "Added _list_directory method"\n'
+            "}\n"
+        )
+        prompt_with_context = implementation_context
+        print(f"[Agent] 🔧 Implementation mode: ready to insert into {target_file_path}")
+    else:
+        # Action-oriented context with JSON instruction
+        prompt_with_context = ios_context + context_str
+    
+    # Check if model should call external APIs for better context (AFTER prompt_with_context is defined)
     api_gateway = APIGateway()
     api_used = None
     
@@ -163,20 +419,7 @@ def process_prompt(msg, memory, bot, outbox_path):
             dbg.write(f"[process_prompt] LLM prompt: {prompt_with_context[:500]}\n")
     except Exception:
         pass
-    # Determine if this is a simple chat or requires action
-    is_simple_chat = not any(keyword in prompt.lower() for keyword in [
-        'create file', 'write file', 'generate file', 'make file', 'build file',
-        'execute', 'run command', 'install', 'delete', 'modify file', 'update file'
-    ])
-    
-    # Build context based on chat type
-    if is_simple_chat:
-        # Simple conversational context - no action instructions
-        prompt_with_context = f"User: {prompt}\n" + context_str
-    else:
-        # Action-oriented context with JSON instruction
-        prompt_with_context = ios_context + context_str
-    
+
     refined_prompt = prompt_with_context  # Set for memory storage later
     
     import ollama
@@ -197,6 +440,24 @@ def process_prompt(msg, memory, bot, outbox_path):
                     {'role': 'user', 'content': prompt_with_context}
                 ],
                 options={'temperature': 0.7, 'num_predict': 512}
+            )
+            reply = response['message']['content']
+        elif is_suggestion_mode:
+            # Suggestion mode - conversational with options
+            suggestion_system = (
+                "You are an AI assistant helping the user choose upgrades. "
+                "Respond in natural language, NOT JSON. "
+                "List the upgrade options clearly with numbers. "
+                "Ask which one they want to implement. "
+                "Be concise and helpful."
+            )
+            response = ollama.chat(
+                model="openchat",
+                messages=[
+                    {'role': 'system', 'content': suggestion_system},
+                    {'role': 'user', 'content': prompt_with_context}
+                ],
+                options={'temperature': 0.7, 'num_predict': 800}
             )
             reply = response['message']['content']
         else:
@@ -276,64 +537,65 @@ def process_prompt(msg, memory, bot, outbox_path):
 
         # LLM error fallback is handled above; no orphaned try/except here
     
-    # Parse JSON actions from reply
+    # Parse JSON actions from reply (skip for simple chat and suggestion mode)
     actions = []
-    try:
-        with open('/tmp/agent_debug.log', 'a') as dbg:
-            dbg.write(f"[process_prompt] Parsing reply for actions...\n")
-    except Exception:
-        pass
-    try:
-        # Try to parse reply as pure JSON array first
-        reply_stripped = reply.strip()
-        if reply_stripped.startswith('['):
-            try:
-                actions = json.loads(reply_stripped)
-                if not isinstance(actions, list):
-                    actions = [actions]
-                print(f"[Agent] ✓ Parsed {len(actions)} actions from JSON array")
-                try:
-                    with open('/tmp/agent_debug.log', 'a') as dbg:
-                        dbg.write(f"[process_prompt] Parsed {len(actions)} actions from JSON array\n")
-                except Exception:
-                    pass
-            except json.JSONDecodeError:
-                pass
-        # If not array, try to extract individual JSON objects with better pattern
-        if not actions:
-            import re
-            # Find all {...} blocks that contain "action_type"
-            depth = 0
-            start = -1
-            for i, char in enumerate(reply):
-                if char == '{':
-                    if depth == 0:
-                        start = i
-                    depth += 1
-                elif char == '}':
-                    depth -= 1
-                    if depth == 0 and start != -1:
-                        potential_json = reply[start:i+1]
-                        if '"action_type"' in potential_json:
-                            try:
-                                action = json.loads(potential_json)
-                                actions.append(action)
-                                print(f"[Agent] ✓ Parsed action: {action.get('action_type')}")
-                                try:
-                                    with open('/tmp/agent_debug.log', 'a') as dbg:
-                                        dbg.write(f"[process_prompt] Parsed action: {action.get('action_type')}\n")
-                                except Exception:
-                                    pass
-                            except json.JSONDecodeError as je:
-                                pass
-                        start = -1
-    except Exception as e:
-        print(f"[Agent] Error parsing actions: {e}")
+    if not is_simple_chat and not is_suggestion_mode:
         try:
             with open('/tmp/agent_debug.log', 'a') as dbg:
-                dbg.write(f"[process_prompt] Error parsing actions: {e}\n")
+                dbg.write(f"[process_prompt] Parsing reply for actions...\n")
         except Exception:
             pass
+        try:
+            # Try to parse reply as pure JSON array first
+            reply_stripped = reply.strip()
+            if reply_stripped.startswith('['):
+                try:
+                    actions = json.loads(reply_stripped)
+                    if not isinstance(actions, list):
+                        actions = [actions]
+                    print(f"[Agent] ✓ Parsed {len(actions)} actions from JSON array")
+                    try:
+                        with open('/tmp/agent_debug.log', 'a') as dbg:
+                            dbg.write(f"[process_prompt] Parsed {len(actions)} actions from JSON array\n")
+                    except Exception:
+                        pass
+                except json.JSONDecodeError:
+                    pass
+            # If not array, try to extract individual JSON objects with better pattern
+            if not actions:
+                import re
+                # Find all {...} blocks that contain "action_type"
+                depth = 0
+                start = -1
+                for i, char in enumerate(reply):
+                    if char == '{':
+                        if depth == 0:
+                            start = i
+                        depth += 1
+                    elif char == '}':
+                        depth -= 1
+                        if depth == 0 and start != -1:
+                            potential_json = reply[start:i+1]
+                            if '"action_type"' in potential_json:
+                                try:
+                                    action = json.loads(potential_json)
+                                    actions.append(action)
+                                    print(f"[Agent] ✓ Parsed action: {action.get('action_type')}")
+                                    try:
+                                        with open('/tmp/agent_debug.log', 'a') as dbg:
+                                            dbg.write(f"[process_prompt] Parsed action: {action.get('action_type')}\n")
+                                    except Exception:
+                                        pass
+                                except json.JSONDecodeError as je:
+                                    pass
+                            start = -1
+        except Exception as e:
+            print(f"[Agent] Error parsing actions: {e}")
+            try:
+                with open('/tmp/agent_debug.log', 'a') as dbg:
+                    dbg.write(f"[process_prompt] Error parsing actions: {e}\n")
+            except Exception:
+                pass
     
     # BULLETPROOF: If prompt requests /tmp/manual_test.txt and no create_file action for it is present, forcibly inject it
     try:

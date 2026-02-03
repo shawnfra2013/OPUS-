@@ -1,2 +1,4 @@
 #!/bin/bash
-"$(dirname "$0")/scripts/dev.sh" -killdev
+# AI-S : Stop all dev services
+cd "$(dirname "$0")"
+./scripts/dev.sh -killdev

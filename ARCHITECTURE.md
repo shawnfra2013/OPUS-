@@ -2,6 +2,7 @@
 
 ## Overview
 OPUS is an autonomous AI agent system with a Python backend and Tkinter GUI.
+**Now with SELF-MODIFICATION capabilities** - the agent can read and edit its own code.
 
 ## Core Components (KEEP)
 
@@ -35,6 +36,16 @@ OPUS is an autonomous AI agent system with a Python backend and Tkinter GUI.
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Self-Modification Capabilities
+
+The agent can perform these action types:
+- **read_file** - Read any file including its own source code
+- **create_file** - Create new files with new capabilities
+- **update_file** - Modify existing files (including itself!)
+- **execute_command** - Run shell commands
+
+See [BOOTSTRAP_PROMPT.md](BOOTSTRAP_PROMPT.md) for test prompts.
 
 ## File Inventory
 

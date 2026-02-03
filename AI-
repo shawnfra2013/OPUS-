@@ -1,2 +1,4 @@
 #!/bin/bash
-"$(dirname "$0")/scripts/dev.sh" -dev
+# AI- : Start all dev services (Ollama, Agent, GUI)
+cd "$(dirname "$0")"
+./scripts/dev.sh -dev
